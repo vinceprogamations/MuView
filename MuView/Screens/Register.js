@@ -13,77 +13,92 @@ import { Ionicons } from '@expo/vector-icons';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../controller';
 
-export default function Register() {
-  // Estados pra guardar os valores dos campos
-  const [name, setName] = useState('');
+// --- Tela de Registro --- //
+export default function Register({ navigation }) {
+  // estados pra guardar o que o usuário digita
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false); // Controla se a senha fica visível
-  const [loading, setLoading] = useState(false); // Mostra quando tá processando o cadastro
+  const [showPassword, setShowPassword] = useState(false); // pra mostrar/esconder a senha
+  const [loading, setLoading] = useState(false); // pra mostrar quando tá carregando
 
-  // Função que é chamada quando o usuário aperta o botão de cadastrar
+  // função que roda quando clica no botão de cadastrar
   const RegistroUsuario = async () => {
-    // Verifica se o cara preencheu os campos
-    if (!name.trim() || !password.trim()) {
-      Alert.alert('Erro', 'Por favor, preencha todos os campos obrigatórios');
+    // verifica se preencheu tudo direitinho
+    if (!email.trim() || !password.trim()) {
+      Alert.alert('Opa!', 'Você precisa preencher todos os campos.');
       return;
     }
 
-    setLoading(true); // Ativa o loading pra mostrar que tá processando
+    setLoading(true); // ativa o loading pra mostrar que tá processando
     try {
-      // Aqui você pode implementar sua lógica de registro
-      // Por enquanto, só simula o cadastro
-      console.log('Usuário cadastrado!', name);
+      // aqui a gente usa a função do firebase pra criar o usuário só na autenticação
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      console.log("Usuário cadastrado na autenticação!", userCredential.user.email);
+      
+      // se der tudo certo, mostra um alerta de sucesso
       Alert.alert(
-        'Sucesso!', 
-        'Conta criada com sucesso!',
+        'Aê!', 
+        'Sua conta foi criada com sucesso!',
         [
           {
-            text: 'OK',
+            text: 'Beleza!',
             onPress: () => {
-              // Limpa os campos depois que deu certo
-              setName('');
+              // limpa os campos do formulário
+              setEmail('');
               setPassword('');
+              // e manda o usuário pra tela de login
+              navigation.navigate('TelaLogin');
             }
           }
         ]
       );
     } catch (error) {
-      console.error('Erro ao criar conta:', error);
-      let errorMessage = 'Erro ao criar conta. Tente novamente.';
+      // se der erro, a gente pega o código do erro pra mostrar uma mensagem mais amigável
+      console.error('Deu ruim na hora de criar a conta:', error);
+      let errorMessage = 'Não foi possível criar a conta. Tenta de novo.';
       
-      Alert.alert('Erro', errorMessage);
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'Hmm, esse email já está sendo usado por outra pessoa.';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'Sua senha precisa ter pelo menos 6 caracteres, blz?';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Esse email não parece válido. Dá uma olhadinha de novo.';
+      }
+      
+      Alert.alert('Erro no Cadastro', errorMessage);
     } finally {
-      setLoading(false); // Desativa o loading quando termina (deu certo ou errado)
+      setLoading(false); // desativa o loading, dando certo ou errado
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Barra do topo com botão de voltar */}
+        {/* botão de voltar */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
         </View>
 
         <View style={styles.content}>
-          <Text style={styles.title}>Register</Text>
-          <Text style={styles.subtitle}>Create an account to continue!</Text>
+          <Text style={styles.title}>Registrar</Text>
+          <Text style={styles.subtitle}>Crie uma conta para continuar!</Text>
 
-          {/* Formulário com os campos de entrada */}
+          {/* nosso formulário */}
           <View style={styles.form}>
-            {/* Campo pra digitar o nome */}
+            {/* campo do email */}
             <TextInput
               style={styles.input}
-              placeholder="Your Name"
+              placeholder="Email"
               placeholderTextColor="#999"
-              value={name}
-              onChangeText={setName}
-              autoCapitalize="words" // Deixa a primeira letra de cada palavra maiúscula
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
             />
 
-            {/* Campo da senha com botão de mostrar/esconder */}
+            {/* campo da senha com o botão do olhinho */}
             <View style={styles.passwordContainer}>
               <TextInput
                 style={styles.passwordInput}
@@ -91,10 +106,9 @@ export default function Register() {
                 placeholderTextColor="#999"
                 value={password}
                 onChangeText={setPassword}
-                secureTextEntry={!showPassword} // Esconde a senha se showPassword for false
+                secureTextEntry={!showPassword}
                 autoCapitalize="none"
               />
-              {/* Botão do olhinho pra mostrar ou esconder senha */}
               <TouchableOpacity
                 style={styles.eyeButton}
                 onPress={() => setShowPassword(!showPassword)}
@@ -107,23 +121,23 @@ export default function Register() {
               </TouchableOpacity>
             </View>
 
-            {/* Botão de cadastrar que fica cinza quando tá carregando */}
+            {/* botão de cadastrar */}
             <TouchableOpacity 
               style={[styles.registerButton, loading && styles.buttonDisabled]}
               onPress={RegistroUsuario}
               disabled={loading}
             >
               <Text style={styles.registerButtonText}>
-                {loading ? 'Creating...' : 'Register'}
+                {loading ? 'Criando...' : 'Registrar'}
               </Text>
             </TouchableOpacity>
           </View>
 
-          {/* Rodapé com link pra tela de login */}
+          {/* rodapé com o link pra tela de login */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => Alert.alert('Info', 'Login screen not implemented yet')}>
-              <Text style={styles.loginLink}>Log in</Text>
+            <Text style={styles.footerText}>Já tem uma conta? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('TelaLogin')}>
+              <Text style={styles.loginLink}>Faça Login</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -132,6 +146,7 @@ export default function Register() {
   );
 }
 
+// Estilos
 const styles = StyleSheet.create({
   container: {
     flex: 1,

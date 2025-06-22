@@ -5,429 +5,246 @@ import {
   StyleSheet,
   Image,
   TouchableOpacity,
-  ScrollView,
-  TextInput,
-  Modal,
   Alert,
-  Dimensions,
   FlatList,
+  SafeAreaView
 } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { auth, db } from '../controller'; // Trazendo o auth e o db do controller
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc, updateDoc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
-const { width } = Dimensions.get('window');
+// Componente principal do perfil
+export default function Profile({ navigation }) {
+  // estados pra guardar os dados do usuário e das obras salvas
+  const [user, setUser] = useState(null); // o usuário da autenticação
+  const [profile, setProfile] = useState(null); // os dados do perfil (nome, foto, etc)
+  const [savedPosts, setSavedPosts] = useState([]); // as obras salvas (objetos completos)
+  const [loading, setLoading] = useState(true);
 
-const Profile = ({ navigation, route }) => {
-  const [user, setUser] = useState({
-    name: 'Daniel',
-    username: '@aeru',
-    profileImage: null,
-    followers: 0,
-    following: 0,
-  });
-
-  const [createdPosts, setCreatedPosts] = useState([]);
-  const [savedPosts, setSavedPosts] = useState([]);
-  const [activeTab, setActiveTab] = useState('Created');
-  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
-  const [editName, setEditName] = useState('');
-
+  // esse useEffect fica "ouvindo" se o usuário está logado ou não
   useEffect(() => {
-    loadUserData();
-    loadFavoritedPosts();
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        // se tem usuário, a gente guarda ele no estado e busca o perfil
+        setUser(currentUser);
+        fetchUserProfile(currentUser.uid);
+      } else {
+        // se não tem, manda pra tela de login
+        navigation.navigate('TelaLogin');
+      }
+    });
+    // função de limpeza pra parar de "ouvir" quando a tela fecha
+    return unsubscribe;
   }, []);
 
-  const loadUserData = async () => {
+  // função que busca os dados do perfil do usuário no firestore
+  const fetchUserProfile = async (uid) => {
+    setLoading(true);
     try {
-      const userData = await AsyncStorage.getItem('userData');
-      if (userData) {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
-        setEditName(parsedUser.name);
+      const userDocRef = doc(db, 'users', uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        setProfile(userData);
+        // se o usuário tiver um array de 'savedPosts', a gente busca os detalhes
+        if (userData.savedPosts && userData.savedPosts.length > 0) {
+          fetchSavedPostsDetails(userData.savedPosts);
+        } else {
+          setSavedPosts([]); // se não tiver, a lista fica vazia
+          setLoading(false);
+        }
+      } else {
+        // isso aqui é uma segurança: se o usuário foi autenticado mas não tem perfil no banco,
+        // a gente cria um perfil básico pra ele na hora
+        console.log("Usuário sem perfil no Firestore, criando um agora...");
+        const newProfile = { name: 'Novo Usuário', username: `@novo_usuario`, savedPosts: [] };
+        await setDoc(userDocRef, newProfile);
+        setProfile(newProfile);
+        setLoading(false);
       }
     } catch (error) {
-      console.log('Erro ao carregar dados do usuário:', error);
+      console.error("Deu ruim ao buscar o perfil:", error);
+      setLoading(false);
     }
   };
 
-  const loadFavoritedPosts = async () => {
+  // função pra buscar os detalhes das obras que o usuário favoritou
+  const fetchSavedPostsDetails = async (postIds) => {
     try {
-      const favoritedPosts = await AsyncStorage.getItem('favoritedPosts');
-      if (favoritedPosts) {
-        setSavedPosts(JSON.parse(favoritedPosts));
-      }
+      const obrasRef = collection(db, "obras");
+      // aqui a gente busca na coleção 'obras' todos os documentos cujo ID está na nossa lista de 'postIds'
+      const q = query(obrasRef, where("__name__", "in", postIds));
+      const querySnapshot = await getDocs(q);
+      const posts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setSavedPosts(posts); // guarda a lista de objetos completos das obras
     } catch (error) {
-      console.log('Erro ao carregar posts favoritados:', error);
+      console.error("Deu ruim ao buscar os detalhes dos posts salvos:", error);
+    } finally {
+      setLoading(false);
     }
   };
-
-  const saveUserData = async (updatedUser) => {
-    try {
-      await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
-      setUser(updatedUser);
-    } catch (error) {
-      console.log('Erro ao salvar dados do usuário:', error);
-    }
-  };
-
-  const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
-    if (status !== 'granted') {
-      Alert.alert('Permissão necessária', 'Precisamos de permissão para acessar suas fotos!');
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      const updatedUser = { ...user, profileImage: result.assets[0].uri };
-      saveUserData(updatedUser);
-    }
-  };
-
-  const takePhoto = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    
-    if (status !== 'granted') {
-      Alert.alert('Permissão necessária', 'Precisamos de permissão para acessar a câmera!');
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      const updatedUser = { ...user, profileImage: result.assets[0].uri };
-      saveUserData(updatedUser);
-    }
-  };
-
-  const showImagePicker = () => {
-    Alert.alert(
-      'Alterar foto do perfil',
-      'Escolha uma opção',
-      [
-        { text: 'Câmera', onPress: takePhoto },
-        { text: 'Galeria', onPress: pickImage },
-        { text: 'Cancelar', style: 'cancel' },
-      ]
+  
+  // função pra deixar o usuário mudar a foto de perfil com uma URL
+  const handleChangeProfileImage = () => {
+    Alert.prompt(
+      "Alterar Foto de Perfil",
+      "Cole a URL da sua nova imagem aqui:",
+      async (url) => {
+        if (url && user) {
+          const userDocRef = doc(db, 'users', user.uid);
+          // atualiza o campo 'profileImage' no firestore
+          await updateDoc(userDocRef, { profileImage: url });
+          // atualiza o estado local pra gente ver a mudança na hora
+          setProfile(prevProfile => ({ ...prevProfile, profileImage: url }));
+        }
+      },
+      'plain-text',
+      profile?.profileImage || ''
     );
   };
 
-  const handleSaveName = () => {
-    if (editName.trim()) {
-      const updatedUser = { ...user, name: editName.trim() };
-      saveUserData(updatedUser);
-      setIsEditModalVisible(false);
-    }
-  };
+  if (loading || !profile) {
+    return <SafeAreaView style={styles.container}><Text>Carregando perfil...</Text></SafeAreaView>;
+  }
 
-  const renderPost = ({ item, index }) => (
-    <TouchableOpacity style={styles.postItem}>
-      <Image source={{ uri: item.image || item.uri }} style={styles.postImage} />
-    </TouchableOpacity>
-  );
-
+  // Componente que renderiza o cabeçalho do perfil
   const renderHeader = () => (
-    <View style={styles.header}>
-      <View style={styles.headerTop}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
-        </TouchableOpacity>
-        <TouchableOpacity>
-          <Ionicons name="share-outline" size={24} color="#000" />
-        </TouchableOpacity>
-        <TouchableOpacity>
-          <Ionicons name="ellipsis-horizontal" size={24} color="#000" />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.profileSection}>
-        <TouchableOpacity onPress={showImagePicker} style={styles.profileImageContainer}>
-          {user.profileImage ? (
-            <Image source={{ uri: user.profileImage }} style={styles.profileImage} />
-          ) : (
-            <View style={styles.defaultProfileImage}>
-              <Ionicons name="person" size={40} color="#999" />
-            </View>
-          )}
-          <View style={styles.editIconContainer}>
-            <Ionicons name="camera" size={16} color="#fff" />
+    <View style={styles.profileSection}>
+      <TouchableOpacity onPress={handleChangeProfileImage}>
+        {profile.profileImage ? (
+          <Image source={{ uri: profile.profileImage }} style={styles.profileImage} />
+        ) : (
+          // se não tiver foto, mostra um ícone padrão
+          <View style={styles.defaultProfileImage}>
+            <Ionicons name="person" size={50} color="#fff" />
           </View>
-        </TouchableOpacity>
-
-        <View style={styles.profileInfo}>
-          <TouchableOpacity onPress={() => setIsEditModalVisible(true)}>
-            <Text style={styles.profileName}>{user.name}</Text>
-          </TouchableOpacity>
-          <Text style={styles.profileUsername}>{user.username}</Text>
-          <View style={styles.followInfo}>
-            <Text style={styles.followText}>
-              {user.followers} followers • {user.following} following
-            </Text>
-          </View>
-        </View>
+        )}
+      </TouchableOpacity>
+      <Text style={styles.profileName}>{profile.name}</Text>
+      <Text style={styles.profileUsername}>{profile.username}</Text>
+      <View style={styles.followInfo}>
+        <Text style={styles.followText}>
+          {profile.followers || 0} followers • {profile.following || 0} following
+        </Text>
       </View>
-
       <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'Created' && styles.activeTab]}
-          onPress={() => setActiveTab('Created')}
-        >
-          <Text style={[styles.tabText, activeTab === 'Created' && styles.activeTabText]}>
-            Created
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'Saved' && styles.activeTab]}
-          onPress={() => setActiveTab('Saved')}
-        >
-          <Text style={[styles.tabText, activeTab === 'Saved' && styles.activeTabText]}>
-            Saved
-          </Text>
+        <TouchableOpacity style={styles.activeTab}>
+          <Text style={styles.activeTabText}>Salvos</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <FlatList
         ListHeaderComponent={renderHeader}
-        data={activeTab === 'Created' ? createdPosts : savedPosts}
-        renderItem={renderPost}
-        keyExtractor={(item, index) => index.toString()}
-        numColumns={3}
-        columnWrapperStyle={activeTab === 'Created' ? styles.row : null}
+        data={savedPosts}
+        renderItem={({ item }) => (
+          <View style={styles.postItem}>
+            <Image source={{ uri: item.imagem }} style={styles.postImage} />
+          </View>
+        )}
+        keyExtractor={(item) => item.id}
+        numColumns={2}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>
-              {activeTab === 'Created' 
-                ? 'Nenhuma foto criada ainda' 
-                : 'Nenhuma foto favoritada ainda'
-              }
-            </Text>
+            <Text style={styles.emptyText}>Você ainda não salvou nada.</Text>
           </View>
         }
+        contentContainerStyle={{ paddingBottom: 20 }}
       />
-
-      {/* Modal para editar nome */}
-      <Modal
-        visible={isEditModalVisible}
-        transparent={true}
-        animationType="slide"
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Editar Nome</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={editName}
-              onChangeText={setEditName}
-              placeholder="Digite seu nome"
-              maxLength={50}
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setIsEditModalVisible(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.saveButton]}
-                onPress={handleSaveName}
-              >
-                <Text style={styles.saveButtonText}>Salvar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-    </View>
+    </SafeAreaView>
   );
-};
+}
 
+// Estilos
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-  },
-  header: {
-    backgroundColor: '#fff',
-    paddingTop: 50,
-  },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
     alignItems: 'center',
-    marginBottom: 20,
+    justifyContent: 'center',
   },
   profileSection: {
+    width: '100%',
     alignItems: 'center',
+    paddingVertical: 20,
     paddingHorizontal: 20,
-    marginBottom: 30,
-  },
-  profileImageContainer: {
-    position: 'relative',
-    marginBottom: 15,
+    marginTop: 40,
   },
   profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 3,
+    borderColor: '#eee',
   },
   defaultProfileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#f0f0f0',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#ccc',
     justifyContent: 'center',
-    alignItems: 'center',
-  },
-  editIconContainer: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: '#000',
-    borderRadius: 12,
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  profileInfo: {
     alignItems: 'center',
   },
   profileName: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#000',
-    marginBottom: 5,
+    marginTop: 16,
   },
   profileUsername: {
     fontSize: 16,
     color: '#666',
-    marginBottom: 10,
+    marginTop: 4,
   },
   followInfo: {
-    alignItems: 'center',
+    marginTop: 12,
   },
   followText: {
     fontSize: 14,
-    color: '#666',
+    color: '#333',
   },
   tabContainer: {
     flexDirection: 'row',
+    marginTop: 30,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 15,
-    alignItems: 'center',
+    width: '100%',
+    justifyContent: 'center',
   },
   activeTab: {
+    paddingVertical: 12,
+    marginHorizontal: 20,
     borderBottomWidth: 2,
     borderBottomColor: '#000',
   },
-  tabText: {
-    fontSize: 16,
-    color: '#999',
-  },
   activeTabText: {
+    fontSize: 16,
     color: '#000',
-    fontWeight: '600',
-  },
-  row: {
-    justifyContent: 'space-between',
-    paddingHorizontal: 2,
+    fontWeight: 'bold',
   },
   postItem: {
-    width: (width - 6) / 3,
+    width: '48%',
     aspectRatio: 1,
-    marginBottom: 2,
+    margin: '1%',
   },
   postImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 8,
+    borderRadius: 12,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 50,
+    marginTop: 50,
   },
   emptyText: {
     fontSize: 16,
     color: '#999',
-    textAlign: 'center',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 20,
-    width: width * 0.8,
-    maxWidth: 300,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  modalInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    padding: 15,
-    fontSize: 16,
-    marginBottom: 20,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginHorizontal: 5,
-  },
-  cancelButton: {
-    backgroundColor: '#f0f0f0',
-  },
-  saveButton: {
-    backgroundColor: '#000',
-  },
-  cancelButtonText: {
-    color: '#666',
-    fontSize: 16,
-  },
-  saveButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
   },
 });
-
-export default Profile;
