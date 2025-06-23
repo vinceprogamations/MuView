@@ -139,6 +139,7 @@ const Profile = ({ navigation, route }) => {
   );
 
   const renderHeader = () => (
+<<<<<<< Updated upstream
     <View style={styles.header}>
       <View style={styles.headerTop}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -150,6 +151,25 @@ const Profile = ({ navigation, route }) => {
         <TouchableOpacity>
           <Ionicons name="ellipsis-horizontal" size={24} color="#000" />
         </TouchableOpacity>
+=======
+    <View style={styles.profileSection}>
+      <TouchableOpacity onPress={handleChangeProfileImage}>
+        {profile.profileImage ? (
+          <Image source={{ uri: profile.profileImage }} style={styles.profileImage} />
+        ) : (
+          // se não tiver foto, mostra um ícone padrão
+          <View style={styles.defaultProfileImage}>
+            <Ionicons name="person" size={50} color="#fff" />
+          </View>
+        )}
+      </TouchableOpacity>
+      <Text style={styles.profileName}>{user?.email}</Text>
+      <Text style={styles.profileUsername}>{profile.username}</Text>
+      <View style={styles.followInfo}>
+        <Text style={styles.followText}>
+          {profile.followers || 0} followers • {profile.following || 0} following
+        </Text>
+>>>>>>> Stashed changes
       </View>
 
       <View style={styles.profileSection}>
