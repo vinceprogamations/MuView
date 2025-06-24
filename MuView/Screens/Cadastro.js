@@ -2,11 +2,16 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-// essa é a tela que vai juntar os cadastros
-export default function Cadastro({ navigation }) {
+// tela com opções de cadastro
+export default function TelaCadastros({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Central de Cadastros</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16 }}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 12 }}>
+          <Ionicons name="arrow-back" size={24} color="#000" />
+        </TouchableOpacity>
+        <Text style={styles.title}>Central de Cadastros</Text>
+      </View>
       <Text style={styles.subtitle}>O que você deseja adicionar hoje?</Text>
       
       {/* Botão pra ir pra tela de cadastrar obra */}

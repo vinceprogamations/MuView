@@ -4,7 +4,7 @@ import { collection, query, where, getDocs, doc, updateDoc, arrayUnion, arrayRem
 import { db, auth } from '../controller';
 import { Ionicons } from '@expo/vector-icons';
 
-// Componente pra cada obra, igual ao de outras telas
+// componente pra cada obra
 const CartaoObra = ({ obra, onFavorite, isFavorited }) => (
   <View style={styles.cartaoObraContainer}>
     <Image source={{ uri: obra.imagem }} style={styles.imagemObra} />
@@ -19,11 +19,10 @@ const CartaoObra = ({ obra, onFavorite, isFavorited }) => (
   </View>
 );
 
-export default function CountryDetail({ route, navigation }) {
-  // a gente pega o nome do país que foi passado pela navegação
+export default function DetalhesPais({ route, navigation }) {
   const { countryName } = route.params;
   const [obras, setObras] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [carregando, setCarregando] = useState(true);
   const [favoritos, setFavoritos] = useState([]);
 
   useEffect(() => {
@@ -31,12 +30,11 @@ export default function CountryDetail({ route, navigation }) {
     buscarFavoritos();
   }, [countryName]);
 
-  // busca só as obras que são do país específico
+  // busca obras do país específico
   const buscarObrasDoPais = async () => {
     try {
-      setLoading(true);
+      setCarregando(true);
       const obrasRef = collection(db, 'obras');
-      // aqui a gente filtra as obras pelo campo 'pais'
       const q = query(obrasRef, where("pais", "==", countryName));
       const querySnapshot = await getDocs(q);
       const listaObras = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -44,7 +42,7 @@ export default function CountryDetail({ route, navigation }) {
     } catch (error) {
       console.error("Erro ao buscar obras do país:", error);
     } finally {
-      setLoading(false);
+      setCarregando(false);
     }
   };
 
@@ -58,12 +56,12 @@ export default function CountryDetail({ route, navigation }) {
     }
   };
 
-  const handleFavorite = async (obraId, shouldFavorite) => {
+  const lidarComFavorito = async (obraId, deveFavoritar) => {
     const user = auth.currentUser;
     if (!user) return;
     const userDocRef = doc(db, 'users', user.uid);
     try {
-      if (shouldFavorite) {
+      if (deveFavoritar) {
         await updateDoc(userDocRef, { savedPosts: arrayUnion(obraId) });
         setFavoritos(prev => [...prev, obraId]);
       } else {
@@ -75,7 +73,7 @@ export default function CountryDetail({ route, navigation }) {
     }
   };
 
-  if (loading) {
+  if (carregando) {
     return <View style={styles.container}><Text>Carregando obras...</Text></View>;
   }
 
@@ -93,7 +91,7 @@ export default function CountryDetail({ route, navigation }) {
         renderItem={({ item }) => (
           <CartaoObra
             obra={item}
-            onFavorite={handleFavorite}
+            onFavorite={lidarComFavorito}
             isFavorited={favoritos.includes(item.id)}
           />
         )}
@@ -106,7 +104,6 @@ export default function CountryDetail({ route, navigation }) {
   );
 }
 
-// Estilos parecidos com o AuthorDetail
 const styles = StyleSheet.create({
   container: {
     flex: 1,

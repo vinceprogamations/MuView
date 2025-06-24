@@ -5,35 +5,35 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
-// --- Telas --- //
-// aqui a gente importa todas as telas que vamos usar no app
-import Register from './Screens/Register';
-import Login from './Screens/Login';  
-import Home from './Screens/Home';
-import Profile from './Screens/Profile';
-import AuthorDetail from './Screens/AuthorDetail';
-import RegisterObras from './Screens/RegisterObras';
-import RegisterAuthors from './Screens/RegisterAuthors';
-import Cadastro from './Screens/Cadastro';
-import Filtros from './Screens/Filtros';
-import FilterByCountry from './Screens/FilterByCountry';
-import CountryDetail from './Screens/CountryDetail';
-import FilterByAuthor from './Screens/FilterByAuthor';
+// importa as telas
+import TelaCadastro from './Screens/Register';
+import TelaLogin from './Screens/Login';  
+import TelaInicial from './Screens/Home';
+import TelaPerfil from './Screens/Profile';
+import DetalhesAutor from './Screens/DetalheAutor';
+import CadastrarObra from './Screens/RegistroObras';
+import CadastrarAutor from './Screens/RegistroAutor';
+import TelaCadastros from './Screens/Cadastro';
+import TelaFiltros from './Screens/Filtros';
+import FiltrarPorPais from './Screens/FiltroPorPais';
+import DetalhesPais from './Screens/DetalhesPais';
+import FiltrarPorAutor from './Screens/FiltroPorAutor';
+import BandeirasPaises from './Screens/BandeirasPaises';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// --- Navegação Principal (com abas) --- //
-// essa função cria o menu com as abinhas de baixo
+// navegação com abas
 function MainTabs() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
-          // aqui a gente escolhe o ícone pra cada aba
           if (route.name === 'Home') {
             iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'Bandeiras') {
+            iconName = focused ? 'flag' : 'flag-outline';
           } else if (route.name === 'Filtros') {
             iconName = focused ? 'filter' : 'filter-outline';
           } else if (route.name === 'Cadastro') {
@@ -43,10 +43,9 @@ function MainTabs() {
           }
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        // estilo das abas
         tabBarActiveTintColor: '#000',
         tabBarInactiveTintColor: '#999',
-        headerShown: false, // pra não mostrar o cabeçalho padrão
+        headerShown: false,
         tabBarStyle: {
           backgroundColor: '#fff',
           borderTopWidth: 1,
@@ -54,38 +53,34 @@ function MainTabs() {
         },
       })}
     >
-      {/* aqui a gente define cada uma das abas */}
-      <Tab.Screen name="Home" component={Home} options={{ title: 'Início' }} />
-      <Tab.Screen name="Filtros" component={Filtros} options={{ title: 'Filtros' }} />
-      <Tab.Screen name="Cadastro" component={Cadastro} options={{ title: 'Cadastrar' }}/>
-      <Tab.Screen name="Profile" component={Profile} options={{ title: 'Perfil' }} />
+      <Tab.Screen name="Home" component={TelaInicial} options={{ title: 'Início' }} />
+      <Tab.Screen name="Bandeiras" component={BandeirasPaises} options={{ title: 'Países' }} />
+      <Tab.Screen name="Filtros" component={TelaFiltros} options={{ title: 'Filtros' }} />
+      <Tab.Screen name="Cadastro" component={TelaCadastros} options={{ title: 'Cadastrar' }}/>
+      <Tab.Screen name="Profile" component={TelaPerfil} options={{ title: 'Perfil' }} />
     </Tab.Navigator>
   );
 }
 
-// --- App (Componente principal) --- //
-// esse é o coração do nosso app, onde a mágica da navegação acontece
 export default function App() {
   return (
     <NavigationContainer>
       <StatusBar style="dark" />
-      {/* o Stack.Navigator é tipo um baralho de cartas, onde cada tela é uma carta */}
       <Stack.Navigator 
-        initialRouteName="TelaLogin" // a primeira tela que o usuário vê
+        initialRouteName="TelaLogin"
         screenOptions={{
-          headerShown: false, // esconde o cabeçalho em todas as telas
+          headerShown: false,
         }}
       >
-        {/* aqui a gente define todas as telas que o app pode ter */}
-        <Stack.Screen name="TelaLogin" component={Login} />
-        <Stack.Screen name="TelaCadastro" component={Register} />
+        <Stack.Screen name="TelaLogin" component={TelaLogin} />
+        <Stack.Screen name="TelaCadastro" component={TelaCadastro} />
         <Stack.Screen name="MainApp" component={MainTabs} />
-        <Stack.Screen name="AuthorDetail" component={AuthorDetail} />
-        <Stack.Screen name="RegisterObras" component={RegisterObras} />
-        <Stack.Screen name="RegisterAuthors" component={RegisterAuthors} />
-        <Stack.Screen name="FilterByCountry" component={FilterByCountry} />
-        <Stack.Screen name="CountryDetail" component={CountryDetail} />
-        <Stack.Screen name="FilterByAuthor" component={FilterByAuthor} />
+        <Stack.Screen name="AuthorDetail" component={DetalhesAutor} />
+        <Stack.Screen name="RegisterObras" component={CadastrarObra} />
+        <Stack.Screen name="RegisterAuthors" component={CadastrarAutor} />
+        <Stack.Screen name="FilterByCountry" component={FiltrarPorPais} />
+        <Stack.Screen name="CountryDetail" component={DetalhesPais} />
+        <Stack.Screen name="FilterByAuthor" component={FiltrarPorAutor} />
       </Stack.Navigator>
     </NavigationContainer>
   );

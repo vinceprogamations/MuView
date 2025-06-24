@@ -15,12 +15,12 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, updateDoc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 // Componente principal do perfil
-export default function Profile({ navigation }) {
+export default function TelaPerfil({ navigation }) {
   // estados pra guardar os dados do usuário e das obras salvas
   const [user, setUser] = useState(null); // o usuário da autenticação
-  const [profile, setProfile] = useState(null); // os dados do perfil (nome, foto, etc)
-  const [savedPosts, setSavedPosts] = useState([]); // as obras salvas (objetos completos)
-  const [loading, setLoading] = useState(true);
+  const [perfil, setPerfil] = useState(null); // os dados do perfil (nome, foto, etc)
+  const [obrasSalvas, setObrasSalvas] = useState([]); // as obras salvas (objetos completos)
+  const [carregando, setCarregando] = useState(true);
 
   // esse useEffect fica "ouvindo" se o usuário está logado ou não
   useEffect(() => {
@@ -28,7 +28,7 @@ export default function Profile({ navigation }) {
       if (currentUser) {
         // se tem usuário, a gente guarda ele no estado e busca o perfil
         setUser(currentUser);
-        fetchUserProfile(currentUser.uid);
+        buscarPerfilUsuario(currentUser.uid);
       } else {
         // se não tem, manda pra tela de login
         navigation.navigate('TelaLogin');
@@ -39,55 +39,59 @@ export default function Profile({ navigation }) {
   }, []);
 
   // função que busca os dados do perfil do usuário no firestore
-  const fetchUserProfile = async (uid) => {
-    setLoading(true);
+  const buscarPerfilUsuario = async (uid) => {
+    setCarregando(true);
     try {
       const userDocRef = doc(db, 'users', uid);
       const userDoc = await getDoc(userDocRef);
 
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        setProfile(userData);
+        setPerfil(userData);
         // se o usuário tiver um array de 'savedPosts', a gente busca os detalhes
         if (userData.savedPosts && userData.savedPosts.length > 0) {
-          fetchSavedPostsDetails(userData.savedPosts);
+          buscarDetalhesObrasSalvas(userData.savedPosts);
         } else {
-          setSavedPosts([]); // se não tiver, a lista fica vazia
-          setLoading(false);
+          setObrasSalvas([]); // se não tiver, a lista fica vazia
+          setCarregando(false);
         }
       } else {
         // isso aqui é uma segurança: se o usuário foi autenticado mas não tem perfil no banco,
         // a gente cria um perfil básico pra ele na hora
         console.log("Usuário sem perfil no Firestore, criando um agora...");
-        const newProfile = { name: 'Novo Usuário', username: `@novo_usuario`, savedPosts: [] };
+        const newProfile = { 
+          name: user?.email || 'Novo Usuário', 
+          username: `@${user?.email?.split('@')[0] || 'novo_usuario'}`, 
+          savedPosts: [] 
+        };
         await setDoc(userDocRef, newProfile);
-        setProfile(newProfile);
-        setLoading(false);
+        setPerfil(newProfile);
+        setCarregando(false);
       }
     } catch (error) {
-      console.error("Deu ruim ao buscar o perfil:", error);
-      setLoading(false);
+      console.error("Erro ao buscar perfil:", error);
+      setCarregando(false);
     }
   };
 
   // função pra buscar os detalhes das obras que o usuário favoritou
-  const fetchSavedPostsDetails = async (postIds) => {
+  const buscarDetalhesObrasSalvas = async (postIds) => {
     try {
       const obrasRef = collection(db, "obras");
       // aqui a gente busca na coleção 'obras' todos os documentos cujo ID está na nossa lista de 'postIds'
       const q = query(obrasRef, where("__name__", "in", postIds));
       const querySnapshot = await getDocs(q);
       const posts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setSavedPosts(posts); // guarda a lista de objetos completos das obras
+      setObrasSalvas(posts); // guarda a lista de objetos completos das obras
     } catch (error) {
-      console.error("Deu ruim ao buscar os detalhes dos posts salvos:", error);
+      console.error("Erro ao buscar obras salvas:", error);
     } finally {
-      setLoading(false);
+      setCarregando(false);
     }
   };
   
   // função pra deixar o usuário mudar a foto de perfil com uma URL
-  const handleChangeProfileImage = () => {
+  const mudarFotoPerfil = () => {
     Alert.prompt(
       "Alterar Foto de Perfil",
       "Cole a URL da sua nova imagem aqui:",
@@ -97,24 +101,24 @@ export default function Profile({ navigation }) {
           // atualiza o campo 'profileImage' no firestore
           await updateDoc(userDocRef, { profileImage: url });
           // atualiza o estado local pra gente ver a mudança na hora
-          setProfile(prevProfile => ({ ...prevProfile, profileImage: url }));
+          setPerfil(prevProfile => ({ ...prevProfile, profileImage: url }));
         }
       },
       'plain-text',
-      profile?.profileImage || ''
+      perfil?.profileImage || ''
     );
   };
 
-  if (loading || !profile) {
+  if (carregando || !perfil) {
     return <SafeAreaView style={styles.container}><Text>Carregando perfil...</Text></SafeAreaView>;
   }
 
   // Componente que renderiza o cabeçalho do perfil
-  const renderHeader = () => (
+  const renderizarCabecalho = () => (
     <View style={styles.profileSection}>
-      <TouchableOpacity onPress={handleChangeProfileImage}>
-        {profile.profileImage ? (
-          <Image source={{ uri: profile.profileImage }} style={styles.profileImage} />
+      <TouchableOpacity onPress={mudarFotoPerfil}>
+        {perfil.profileImage ? (
+          <Image source={{ uri: perfil.profileImage }} style={styles.profileImage} />
         ) : (
           // se não tiver foto, mostra um ícone padrão
           <View style={styles.defaultProfileImage}>
@@ -122,11 +126,11 @@ export default function Profile({ navigation }) {
           </View>
         )}
       </TouchableOpacity>
-      <Text style={styles.profileName}>{profile.name}</Text>
-      <Text style={styles.profileUsername}>{profile.username}</Text>
+      <Text style={styles.profileName}>{user?.email || perfil.name}</Text>
+      <Text style={styles.profileUsername}>{perfil.username}</Text>
       <View style={styles.followInfo}>
         <Text style={styles.followText}>
-          {profile.followers || 0} followers • {profile.following || 0} following
+          {perfil.followers || 0} followers • {perfil.following || 0} following
         </Text>
       </View>
       <View style={styles.tabContainer}>
@@ -140,8 +144,8 @@ export default function Profile({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <FlatList
-        ListHeaderComponent={renderHeader}
-        data={savedPosts}
+        ListHeaderComponent={renderizarCabecalho}
+        data={obrasSalvas}
         renderItem={({ item }) => (
           <View style={styles.postItem}>
             <Image source={{ uri: item.imagem }} style={styles.postImage} />

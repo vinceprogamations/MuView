@@ -20,39 +20,38 @@ const CartaoObra = ({ obra, onFavorite, isFavorited }) => (
 );
 
 // --- Tela de Detalhes do Autor --- //
-export default function AuthorDetail({ route, navigation }) {
+export default function DetalhesAutor({ route, navigation }) {
   // a gente pega o nome do autor que foi passado como parâmetro na navegação
   const { authorName } = route.params;
   
   // estados pra guardar as obras, o loading e os favoritos
   const [obras, setObras] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [carregando, setCarregando] = useState(true);
   const [favoritos, setFavoritos] = useState([]);
 
-  // busca os dados assim que a tela abre
+  // busca obras quando a tela abre
   useEffect(() => {
     buscarObrasDoAutor();
     buscarFavoritosDoUsuario();
-  }, [authorName]); // se o nome do autor mudar, a gente busca de novo
+  }, [authorName]);
 
-  // função que busca no firebase só as obras que são do autor específico
+  // busca obras do autor específico
   const buscarObrasDoAutor = async () => {
     try {
-      setLoading(true);
+      setCarregando(true);
       const obrasRef = collection(db, 'obras');
-      // aqui tá a mágica: o 'where' filtra os documentos onde o campo "autor" é igual ao 'authorName'
       const q = query(obrasRef, where("autor", "==", authorName));
       const querySnapshot = await getDocs(q);
       const listaObras = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setObras(listaObras);
     } catch (error) {
-      console.error("Deu ruim ao buscar as obras do autor:", error);
+      console.error("Erro ao buscar obras do autor:", error);
     } finally {
-      setLoading(false);
+      setCarregando(false);
     }
   };
 
-  // essa função é a mesma da Home, pra saber o que já tá favoritado
+  // busca favoritos do usuário
   const buscarFavoritosDoUsuario = async () => {
     const user = auth.currentUser;
     if (user) {
@@ -63,13 +62,13 @@ export default function AuthorDetail({ route, navigation }) {
     }
   };
 
-  // essa função também é a mesma da Home, pra favoritar/desfavoritar
-  const handleFavorite = async (obraId, shouldFavorite) => {
+  // favorita ou desfavorita obra
+  const lidarComFavorito = async (obraId, deveFavoritar) => {
     const user = auth.currentUser;
     if (!user) return;
     const userDocRef = doc(db, 'users', user.uid);
     try {
-      if (shouldFavorite) {
+      if (deveFavoritar) {
         await updateDoc(userDocRef, { savedPosts: arrayUnion(obraId) });
         setFavoritos(prev => [...prev, obraId]);
       } else {
@@ -77,12 +76,12 @@ export default function AuthorDetail({ route, navigation }) {
         setFavoritos(prev => prev.filter(id => id !== obraId));
       }
     } catch (error) {
-      console.error("Deu ruim na hora de favoritar:", error);
+      console.error("Erro ao favoritar:", error);
     }
   };
 
   // enquanto carrega, a gente mostra uma mensagem
-  if (loading) {
+  if (carregando) {
     return <SafeAreaView style={styles.container}><Text>Carregando obras...</Text></SafeAreaView>;
   }
 
@@ -103,7 +102,7 @@ export default function AuthorDetail({ route, navigation }) {
         renderItem={({ item }) => (
           <CartaoObra
             obra={item}
-            onFavorite={handleFavorite}
+            onFavorite={lidarComFavorito}
             isFavorited={favoritos.includes(item.id)}
           />
         )}

@@ -2,8 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-// essa é a tela que vai juntar os filtros
-export default function Filtros({ navigation }) {
+// tela com opções de filtros
+export default function TelaFiltros({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Filtros</Text>

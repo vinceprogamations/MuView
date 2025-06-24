@@ -2,46 +2,47 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, SafeAreaView } from 'react-native';
 import { db } from '../controller';
 import { collection, addDoc } from 'firebase/firestore';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
-// tela pra cadastrar um artista novo
-export default function RegisterAuthors({ navigation }) {
-  // estados pra guardar o que a gente digita nos campos
+// tela pra cadastrar artista
+export default function CadastrarAutor({ navigation }) {
   const [nome, setNome] = useState('');
   const [imagem, setImagem] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [carregando, setCarregando] = useState(false);
 
-  // função que roda quando a gente aperta o botão de cadastrar
-  const handleRegisterAuthor = async () => {
-    // validação simples pra ver se os campos não tão vazios
+  // cadastra o artista no firebase
+  const cadastrarAutor = async () => {
     if (!nome.trim() || !imagem.trim()) {
       Alert.alert('Opa!', 'Você precisa preencher o nome e a URL da imagem.');
       return;
     }
-    setLoading(true); // mostra que tá carregando
+    setCarregando(true);
     try {
-      // aqui a gente adiciona um novo "documento" na coleção "artistas" lá no firebase
       await addDoc(collection(db, 'artistas'), {
         nome: nome,
         imagem: imagem,
       });
       Alert.alert('Aê!', 'Artista cadastrado com sucesso!');
-      // limpa os campos depois de cadastrar
       setNome('');
       setImagem('');
-      navigation.goBack(); // volta pra tela anterior
+      navigation.goBack();
     } catch (error) {
-      console.error("Deu ruim pra cadastrar o artista: ", error);
+      console.error("Erro ao cadastrar artista: ", error);
       Alert.alert('Erro', 'Não deu pra cadastrar o artista. Tenta de novo.');
     } finally {
-      setLoading(false); // para de carregar
+      setCarregando(false);
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.form}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16 }}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 12 }}>
+          <Ionicons name="arrow-back" size={24} color="#000" />
+        </TouchableOpacity>
         <Text style={styles.title}>Cadastrar Novo Artista</Text>
-        
+      </View>
+      <View style={styles.form}>
         <TextInput
           style={styles.input}
           placeholder="Nome do Artista"
@@ -56,12 +57,12 @@ export default function RegisterAuthors({ navigation }) {
         />
 
         <TouchableOpacity 
-          style={[styles.button, loading && styles.buttonDisabled]} 
-          onPress={handleRegisterAuthor}
-          disabled={loading}
+          style={[styles.button, carregando && styles.buttonDisabled]} 
+          onPress={cadastrarAutor}
+          disabled={carregando}
         >
           <Text style={styles.buttonText}>
-            {loading ? 'Cadastrando...' : 'Cadastrar Artista'}
+            {carregando ? 'Cadastrando...' : 'Cadastrar Artista'}
           </Text>
         </TouchableOpacity>
       </View>

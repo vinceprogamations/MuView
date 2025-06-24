@@ -14,25 +14,25 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../controller';
 
 // --- Tela de Registro --- //
-export default function Register({ navigation }) {
+export default function TelaCadastro({ navigation }) {
   // estados pra guardar o que o usuário digita
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false); // pra mostrar/esconder a senha
-  const [loading, setLoading] = useState(false); // pra mostrar quando tá carregando
+  const [senha, setSenha] = useState('');
+  const [mostrarSenha, setMostrarSenha] = useState(false); // pra mostrar/esconder a senha
+  const [carregando, setCarregando] = useState(false); // pra mostrar quando tá carregando
 
   // função que roda quando clica no botão de cadastrar
-  const RegistroUsuario = async () => {
+  const cadastrarUsuario = async () => {
     // verifica se preencheu tudo direitinho
-    if (!email.trim() || !password.trim()) {
+    if (!email.trim() || !senha.trim()) {
       Alert.alert('Opa!', 'Você precisa preencher todos os campos.');
       return;
     }
 
-    setLoading(true); // ativa o loading pra mostrar que tá processando
+    setCarregando(true); // ativa o loading pra mostrar que tá processando
     try {
       // aqui a gente usa a função do firebase pra criar o usuário só na autenticação
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
       console.log("Usuário cadastrado na autenticação!", userCredential.user.email);
       
       // se der tudo certo, mostra um alerta de sucesso
@@ -45,7 +45,7 @@ export default function Register({ navigation }) {
             onPress: () => {
               // limpa os campos do formulário
               setEmail('');
-              setPassword('');
+              setSenha('');
               // e manda o usuário pra tela de login
               navigation.navigate('TelaLogin');
             }
@@ -54,7 +54,7 @@ export default function Register({ navigation }) {
       );
     } catch (error) {
       // se der erro, a gente pega o código do erro pra mostrar uma mensagem mais amigável
-      console.error('Deu ruim na hora de criar a conta:', error);
+      console.error('Erro ao criar conta:', error);
       let errorMessage = 'Não foi possível criar a conta. Tenta de novo.';
       
       if (error.code === 'auth/email-already-in-use') {
@@ -67,7 +67,7 @@ export default function Register({ navigation }) {
       
       Alert.alert('Erro no Cadastro', errorMessage);
     } finally {
-      setLoading(false); // desativa o loading, dando certo ou errado
+      setCarregando(false); // desativa o loading, dando certo ou errado
     }
   };
 
@@ -104,17 +104,17 @@ export default function Register({ navigation }) {
                 style={styles.passwordInput}
                 placeholder="••••••••"
                 placeholderTextColor="#999"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
+                value={senha}
+                onChangeText={setSenha}
+                secureTextEntry={!mostrarSenha}
                 autoCapitalize="none"
               />
               <TouchableOpacity
                 style={styles.eyeButton}
-                onPress={() => setShowPassword(!showPassword)}
+                onPress={() => setMostrarSenha(!mostrarSenha)}
               >
                 <Ionicons 
-                  name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                  name={mostrarSenha ? "eye-off-outline" : "eye-outline"} 
                   size={20} 
                   color="#999" 
                 />
@@ -123,12 +123,12 @@ export default function Register({ navigation }) {
 
             {/* botão de cadastrar */}
             <TouchableOpacity 
-              style={[styles.registerButton, loading && styles.buttonDisabled]}
-              onPress={RegistroUsuario}
-              disabled={loading}
+              style={[styles.registerButton, carregando && styles.buttonDisabled]}
+              onPress={cadastrarUsuario}
+              disabled={carregando}
             >
               <Text style={styles.registerButtonText}>
-                {loading ? 'Criando...' : 'Registrar'}
+                {carregando ? 'Criando...' : 'Registrar'}
               </Text>
             </TouchableOpacity>
           </View>

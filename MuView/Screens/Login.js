@@ -6,16 +6,16 @@ import { auth } from '../controller';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 
 // --- Tela de Login --- //
-export default function Login({navigation}){
+export default function TelaLogin({navigation}){
     
     // estados pra guardar o que o usuário digita
     const [email, setEmail] = useState("");
     const [senha, setSenha] = useState("");
-    const [showPassword, setShowPassword] = useState(false); // pra mostrar/esconder a senha
-    const [rememberMe, setRememberMe] = useState(false); // pro checkbox de "lembre-me"
+    const [mostrarSenha, setMostrarSenha] = useState(false); // pra mostrar/esconder a senha
+    const [lembrarDeMim, setLembrarDeMim] = useState(false); // pro checkbox de "lembre-me"
     
     // função que é chamada quando o usuário tenta logar
-    const VerificaUser = () => {
+    const fazerLogin = () => {
         // aqui a gente usa a função do firebase pra tentar logar
         signInWithEmailAndPassword(auth, email, senha)
         .then((userCredential) => {
@@ -73,16 +73,16 @@ export default function Login({navigation}){
                         placeholder="••••••••"
                         value={senha}
                         onChangeText={setSenha}
-                        secureTextEntry={!showPassword}
+                        secureTextEntry={!mostrarSenha}
                         placeholderTextColor="#8E8E93"
                     />
                     {/* ícone do olhinho pra ver a senha */}
                     <TouchableOpacity 
                         style={estilo.eyeIcon}
-                        onPress={() => setShowPassword(!showPassword)}
+                        onPress={() => setMostrarSenha(!mostrarSenha)}
                     >
                         <Entypo 
-                            name={showPassword ? "eye" : "eye-with-line"} 
+                            name={mostrarSenha ? "eye" : "eye-with-line"} 
                             size={20} 
                             color="#8E8E93" 
                         />
@@ -93,10 +93,10 @@ export default function Login({navigation}){
                 <View style={estilo.optionsContainer}>
                     <TouchableOpacity 
                         style={estilo.rememberContainer}
-                        onPress={() => setRememberMe(!rememberMe)}
+                        onPress={() => setLembrarDeMim(!lembrarDeMim)}
                     >
-                        <View style={[estilo.checkbox, rememberMe && estilo.checkboxChecked]}>
-                            {rememberMe && <Entypo name="check" size={12} color="#007AFF" />}
+                        <View style={[estilo.checkbox, lembrarDeMim && estilo.checkboxChecked]}>
+                            {lembrarDeMim && <Entypo name="check" size={12} color="#007AFF" />}
                         </View>
                         <Text style={estilo.rememberText}>Lembre-me</Text>
                     </TouchableOpacity>
@@ -107,7 +107,7 @@ export default function Login({navigation}){
                 </View>
                 
                 {/* botão de entrar */}
-                <TouchableOpacity style={estilo.loginButton} onPress={VerificaUser}>
+                <TouchableOpacity style={estilo.loginButton} onPress={fazerLogin}>
                     <Text style={estilo.loginButtonText}>Entrar</Text>
                 </TouchableOpacity>
                 

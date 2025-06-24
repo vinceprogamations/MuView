@@ -2,26 +2,24 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, SafeAreaView, ScrollView } from 'react-native';
 import { db } from '../controller';
 import { collection, addDoc } from 'firebase/firestore';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
-// --- Tela de Cadastro de Obras --- //
-export default function RegisterObras({ navigation }) {
-  // estados pra guardar o que a gente digita nos campos
+// tela pra cadastrar obra
+export default function CadastrarObra({ navigation }) {
   const [titulo, setTitulo] = useState('');
   const [autor, setAutor] = useState('');
   const [pais, setPais] = useState('');
   const [imagem, setImagem] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [carregando, setCarregando] = useState(false);
 
-  // função que roda quando a gente aperta o botão de cadastrar
-  const handleRegisterObra = async () => {
-    // validação simples pra ver se os campos mais importantes não tão vazios
+  // cadastra a obra no firebase
+  const cadastrarObra = async () => {
     if (!titulo || !autor || !imagem) {
       Alert.alert('Opa!', 'Você precisa preencher pelo menos o título, autor e a imagem.');
       return;
     }
-    setLoading(true); // mostra que tá carregando
+    setCarregando(true);
     try {
-      // aqui a gente adiciona um novo "documento" na coleção "obras" lá no firebase
       await addDoc(collection(db, 'obras'), {
         titulo: titulo,
         autor: autor,
@@ -30,25 +28,28 @@ export default function RegisterObras({ navigation }) {
       });
       Alert.alert('Aê!', 'Obra cadastrada com sucesso!');
       
-      // limpa os campos depois de cadastrar
       setTitulo('');
       setAutor('');
       setPais('');
       setImagem('');
-      // volta pra tela Home pra gente ver a obra nova
       navigation.navigate('Home');
     } catch (error) {
-      console.error("Deu ruim pra cadastrar a obra: ", error);
+      console.error("Erro ao cadastrar obra: ", error);
       Alert.alert('Erro', 'Não deu pra cadastrar a obra. Tenta de novo.');
     } finally {
-      setLoading(false); // para de carregar
+      setCarregando(false);
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <Text style={styles.title}>Cadastrar Nova Obra</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16 }}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 12 }}>
+            <Ionicons name="arrow-back" size={24} color="#000" />
+          </TouchableOpacity>
+          <Text style={styles.title}>Cadastrar Nova Obra</Text>
+        </View>
         
         <TextInput
           style={styles.input}
@@ -76,12 +77,12 @@ export default function RegisterObras({ navigation }) {
         />
         
         <TouchableOpacity 
-          style={[styles.button, loading && styles.buttonDisabled]} 
-          onPress={handleRegisterObra}
-          disabled={loading}
+          style={[styles.button, carregando && styles.buttonDisabled]} 
+          onPress={cadastrarObra}
+          disabled={carregando}
         >
           <Text style={styles.buttonText}>
-            {loading ? 'Cadastrando...' : 'Cadastrar Obra'}
+            {carregando ? 'Cadastrando...' : 'Cadastrar Obra'}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -89,7 +90,6 @@ export default function RegisterObras({ navigation }) {
   );
 }
 
-// nossos estilos
 const styles = StyleSheet.create({
   container: {
     flex: 1,

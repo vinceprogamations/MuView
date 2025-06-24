@@ -44,7 +44,7 @@ const CartaoObra = ({ obra, onFavorite, isFavorited }) => (
 
 // --- TELA PRINCIPAL --- //
 
-export default function Home({ navigation }) {
+export default function TelaInicial({ navigation }) {
   const [artistas, setArtistas] = useState([]);
   const [obras, setObras] = useState([]);
   const [favoritos, setFavoritos] = useState([]); // lista de IDs das obras favoritas
@@ -72,7 +72,7 @@ export default function Home({ navigation }) {
       setObras(listaObras);
 
     } catch (erro) {
-      console.log('Deu erro ao buscar dados:', erro);
+      console.log('Erro ao buscar dados:', erro);
     }
   };
   
@@ -89,7 +89,7 @@ export default function Home({ navigation }) {
   };
 
   // função pra lidar com o clique no coração
-  const handleFavorite = async (obraId, shouldFavorite) => {
+  const lidarComFavorito = async (obraId, deveFavoritar) => {
     const user = auth.currentUser;
     if (!user) {
       alert("Você precisa estar logado para favoritar!");
@@ -99,7 +99,7 @@ export default function Home({ navigation }) {
     const userDocRef = doc(db, 'users', user.uid);
     
     try {
-      if (shouldFavorite) {
+      if (deveFavoritar) {
         // adiciona o ID da obra no array de 'savedPosts' do usuário
         await updateDoc(userDocRef, { savedPosts: arrayUnion(obraId) });
         setFavoritos(prev => [...prev, obraId]); // atualiza o estado local
@@ -118,7 +118,11 @@ export default function Home({ navigation }) {
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       
       <View style={styles.cabecalho}>
+        <TouchableOpacity onPress={() => navigation.navigate('MainApp')} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#333" />
+        </TouchableOpacity>
         <Text style={styles.tituloCabecalho}>MuView</Text>
+        <View style={{ width: 24 }} />
       </View>
 
       <ScrollView style={styles.conteudo} showsVerticalScrollIndicator={false}>
@@ -148,7 +152,7 @@ export default function Home({ navigation }) {
             <CartaoObra
               key={obra.id}
               obra={obra}
-              onFavorite={handleFavorite}
+              onFavorite={lidarComFavorito}
               isFavorited={favoritos.includes(obra.id)}
             />
           ))}
@@ -166,8 +170,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   cabecalho: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 15,
+  },
+  backButton: {
+    padding: 5,
   },
   tituloCabecalho: {
     fontSize: 24,

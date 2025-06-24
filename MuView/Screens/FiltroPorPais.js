@@ -3,51 +3,51 @@ import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, FlatList, Image
 import { db } from '../controller';
 import { collection, getDocs } from 'firebase/firestore';
 
-export default function FilterByAuthor({ navigation }) {
-  const [autores, setAutores] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function FiltrarPorPais({ navigation }) {
+  const [paises, setPaises] = useState([]);
+  const [carregando, setCarregando] = useState(true);
 
-  // busca os autores no firestore
+  // busca países no firebase
   useEffect(() => {
-    const fetchAutores = async () => {
+    const buscarPaises = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, 'artistas'));
-        const listaAutores = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setAutores(listaAutores);
+        const querySnapshot = await getDocs(collection(db, 'paises'));
+        const listaPaises = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setPaises(listaPaises);
       } catch (error) {
-        console.error("Erro ao buscar autores:", error);
+        console.error("Erro ao buscar países:", error);
       } finally {
-        setLoading(false);
+        setCarregando(false);
       }
     };
-    fetchAutores();
+    buscarPaises();
   }, []);
 
-  // componente pra renderizar cada autor
-  const renderItem = ({ item }) => (
+  // renderiza cada país
+  const renderizarItem = ({ item }) => (
     <TouchableOpacity 
       style={styles.card}
-      onPress={() => navigation.navigate('AuthorDetail', { authorName: item.nome })}
+      onPress={() => navigation.navigate('CountryDetail', { countryName: item.nome })}
     >
-      <Image source={{ uri: item.imagem }} style={styles.authorImage} />
-      <Text style={styles.authorName}>{item.nome}</Text>
+      <Image source={{ uri: item.bandeira }} style={styles.flag} />
+      <Text style={styles.countryName}>{item.nome}</Text>
     </TouchableOpacity>
   );
 
-  if (loading) {
-    return <SafeAreaView style={styles.container}><Text>Carregando autores...</Text></SafeAreaView>;
+  if (carregando) {
+    return <SafeAreaView style={styles.container}><Text>Carregando países...</Text></SafeAreaView>;
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Filtrar por Autor</Text>
+      <Text style={styles.title}>Filtrar por País</Text>
       <FlatList
-        data={autores}
-        renderItem={renderItem}
+        data={paises}
+        renderItem={renderizarItem}
         keyExtractor={item => item.id}
         numColumns={2}
         contentContainerStyle={styles.list}
-        ListEmptyComponent={<Text style={styles.emptyText}>Nenhum autor cadastrado ainda.</Text>}
+        ListEmptyComponent={<Text style={styles.emptyText}>Nenhum país cadastrado ainda.</Text>}
       />
     </SafeAreaView>
   );
@@ -80,13 +80,14 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 3,
   },
-  authorImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+  flag: {
+    width: '100%',
+    height: 80,
+    borderRadius: 5,
     marginBottom: 10,
+    resizeMode: 'cover',
   },
-  authorName: {
+  countryName: {
     fontSize: 16,
     fontWeight: '600',
   },
