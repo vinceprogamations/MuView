@@ -14,11 +14,6 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { View, Text } from 'react-native';
 import cadastroProduto from './Screens/cadastroProduto';
 
-<<<<<<< Updated upstream
-function BottomTab(){
-  const Tab = createBottomTabNavigator();
-  return(
-=======
 // importa as telas
 import TelaCadastro from './Screens/Register';
 import TelaLogin from './Screens/Login';  
@@ -44,7 +39,6 @@ const Tab = createBottomTabNavigator();
 // navegação com abas
 function MainTabs() {
   return (
->>>>>>> Stashed changes
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
@@ -138,17 +132,6 @@ export default function App () {
   const Stack = createStackNavigator();
   
   return (
-<<<<<<< Updated upstream
-    <CarrinhoProvider>
-      <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen options={{headerShown:false}} name='TelaLogin' component={Login}/>
-          <Stack.Screen options={{headerShown:false}} name='TelaCadastro' component={Cadastro}/>
-          <Stack.Screen options={{headerShown:false}} name='Home' component={BottomTab}/>
-        </Stack.Navigator>
-      </NavigationContainer>
-    </CarrinhoProvider>
-=======
     <NavigationContainer>
       <StatusBar style="dark" />
       <Stack.Navigator 
@@ -173,6 +156,5 @@ export default function App () {
         <Stack.Screen name="BuscarPais" component={BuscarPais} />
       </Stack.Navigator>
     </NavigationContainer>
->>>>>>> Stashed changes
   );
 }
